@@ -1,7 +1,7 @@
 # PSY6422_myproject
 Final R project for PSY6422: Deaths caused by Dementia and Parkinson's disease in the UK, USA and the World between 1990 and 2016
 
-The aim of this project is to visualise the share of deaths caused by Dementia and Parkinson's disease in three different regions. These included the UK and USA due to their cultural similarities, as well as both being developed countries with considerable contributions to the global economy. Data representing the world as a whole was also collected as it allows for 
+The aim of this project is to visualise the share of deaths caused by Dementia and Parkinson's disease in three different regions. These included the UK and USA due to their cultural similarities, as well as both being developed countries with considerable contributions to the global economy. Data regarding the world as a whole was also collected as it allows for an accurate representation of how deaths in the UK and USA compare to the whole world, showing a significant difference. This leads to the question as to why this is the case: why are deaths caused by these diseases more prevalent in the UK and USA?
 
 The downloaded data, in the form of a .csv file, can be found in the 'data' folder. The downloaded visualisations can be found in the 'figs' folder. 
 
