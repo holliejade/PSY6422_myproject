@@ -1,0 +1,191 @@
+---
+title: "PSY6422 Final Project"
+author: 210177846
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 4
+    number_sections: yes
+    theme: lumen
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(knitr)
+library(rsconnect)
+```
+
+# **Deaths caused by Dementia and Parkinson's disease in the UK, USA and the World between 1990 and 2016** {.unnumbered}
+
+# Research Question
+
+The data that is visualised in this project considers the percentage of deaths caused by Dementia, and Parkinson's disease, between the years of 1990 and 2016, in the United Kingdom (UK), United States of America (US) and the World as a whole.
+
+## Data Origin
+
+This project will focus on the visualisation of data imported from *Kaggle*. Data was collected by *Our World in Data* and includes 32 different causes of death and their corresponding share to overall deaths in all countries of the world from 1990 to 2016. I downloaded this dataset into Microsoft Excel, where I then downloaded it to a .csv file, to ensure the data could be imported into R.
+
+**Citation for Kaggle**: Pawlus, M., 2018. Global Causes of Mortality. [online] Kaggle.com. Available at: <https://www.kaggle.com/datasets/michaelpawlus/global-causes-of-mortality?resource=download>
+
+
+```{r data import}
+# Importing the dataset 
+df <- read.csv(here("data", "global_mortality.csv"))
+
+# head(df) can be used to visualise the top 6 rows of the imported dataset 
+```
+
+## Data Codebook
+
+The preceding table shows the individual variables that have been attributed and used to produce the final visualisation. Each variable name is accompanied by an explanation as to what it means, to provide a more understandable basis for the following code.
+
+Variable Name | Explanation                                                   
+--------------|------------
+mortality | The edited dataset with only the relevant columns and rows included                                                                     
+Region | This is either the name of the country that the data was obtained from, or the world as a collective
+Year | The year in which the data was obtained                                
+Dementia | The percentage of deaths caused by Dementia in that specific year and country 
+PD | The percentage of deaths caused by Parkinson's disease in that specific year and country 
+p1 | This corresponds to the grouped bar plot for deaths caused by Dementia, from 1990 to 2016, in the United Kingdom and United States
+p2 | This corresponds to the grouped bar plot for deaths caused by Parkinson's disease, from 1990 to 2016, in the United Kingdom and United States
+mortalityPlot | The output plots that will be shown when the appropiate option is selected in the drop-down bar                                             
+
+## Data Preparation
+
+### Data Wrangling
+
+It was important to make this extremely large dataset suitable for data visualisation. This was achieved by selecting the appropriate countries that I wanted to visualise (these being the United Kingdom and the United States), as well as making sure all years (from 1990-2016) were included for both countries. Furthermore, as I was only interested in the percentage of deaths caused by Dementia and Parkinson's disease, I needed to ensure that only these columns were selected.
+
+```{r tidying the data}
+# Making the data accessible for R studio 
+df_tb <- as_tibble(df)
+
+# Changing the names of particular columns that I want to use, so it makes it easier when displaying the data as an interactive plot 
+names(df_tb)[1] <- "Region"
+names(df_tb)[3] <-  "Year"
+names(df_tb)[8] <- "Dementia"
+names(df_tb)[26] <- "PD"
+
+
+# Selecting the appropriate rows and columns for data visualisation
+mortality <- df_tb[c(5752:5805, 6049:6075), c("Region", "Year", "Dementia", "PD")]
+
+head(mortality)  # Check the data is correctly modified 
+
+```
+
+## Data Visualisation
+
+The use of ***Shiny*** allowed for the incorporation of interactive elements into the data visualisation, enabling individuals to explore the difference between deaths caused by dementia in the UK and deaths caused by Parkinson's disease in the UK, year by year, on different plots. Furthermore, it allowed me to make it so when you hover over each bar, it displays the exact percentage of deaths caused by Dementia or Parkinson's disease in that year and for that specific country.
+
+Using ***Plotly*** allowed me to produce plots that give options to zoom in and out, compare the grouped bars (displaying the information for the UK, USA and the world for that specific year when hovered over), and allowing for single countries to be visualised on their own, when the said country is clicked on in the key.
+
+```{r warning=FALSE, message=FALSE, echo=TRUE}
+
+shinyApp(
+  ui =   fluidPage(
+    titlePanel("Global Mortality"),
+    
+# Creating the drop-down bar to allow for choosing between two different plots
+  
+      inputPanel(
+  shiny::selectInput("per_death", label = "Percentage of deaths caused by:",
+                     choices = c("Dementia", "Parkinson's Disease"), selected = "Dementia"),
+    ),
+    mainPanel(fluidRow(plotlyOutput("mortalityPlot", width = 800, height = 400 ))
+              )),
+
+  
+  server =  function(input, output, session){
+    
+    # Creating the output plots so they are shown when the appropriate option is selected  
+  
+  output$"mortalityPlot" <- renderPlotly({
+    
+# This function allows me to create a plot that only appears when the "Dementia" option is chosen 
+    if(input$per_death == "Dementia") { 
+      
+# Attributing the "Dementia" plot to the first variable named "p1", making sure the x and y axis are displayed correctly, and the colours represent the different regions
+     p1 <-  ggplot(mortality, aes(fill = Region, y = Dementia, x = Year)) + 
+
+# Creating a grouped bar plot to allow for data for the UK and USA to appear side-by-side for each year 
+  geom_bar(position="dodge", stat="identity") +
+       
+# Formatting the x axis to allow room for each year to be displayed (each year will appear perpendicular to the x axis)
+       theme(axis.text.x = element_text(angle = 90, size = 10)) +    
+
+# Editing the x axis to show each year consecutively
+       scale_x_continuous(breaks = seq(from = 1990, to = 2016, by = 1), limits = c(1989, 2017)) +
+       
+# Creating the x and y axis labels 
+       labs(x = "Year", y = "Deaths caused by Dementia (%)") +
+       
+# making sure to use colours that are distinguishable to colour-blind individuals
+       scale_fill_manual(values=c("darkorange2", "cornflowerblue", "limegreen")) 
+     
+     print(ggplotly(p1))
+
+ 
+     
+# creating a plot that only appears if "Parkinson's disease" is chosen, and not "Dementia" 
+     
+    } else if (input$per_death == "Parkinson's Disease") { 
+
+# Attributing the "Parkinson's Disease" plot to the second variable named "p2", making sure the x and y axis are displayed correctly (corresponding to the previously modified column names)
+     p2 <- ggplot(mortality, aes(fill = Region, y = PD, x = Year)) + 
+       
+  geom_bar(position="dodge", stat ="identity") + 
+       
+       theme(axis.text.x = element_text(angle = 90, size = 10)) +
+       
+       scale_x_continuous(breaks = seq(from = 1990, to = 2016, by = 1), limits = c(1989, 2017)) +
+  
+       labs(x = "Year", y = "Deaths caused by Parkinson's Disease (%)") +
+
+# Ensuring that the same colours are used for the "Parkinson's disease" plot, and making sure they're in the correct order so that the UK is orange and the US is blue 
+       scale_fill_manual(values=c("darkorange2", "cornflowerblue", "limegreen")) 
+     
+     print(ggplotly(p2))
+    
+    }
+})
+  }
+)
+
+```
+
+### Downloading and Saving the Visualiations
+Once you click on the visualisation ***Plotly*** provides an option, in the top right corner, to 'Download plot as a png'. This allows for the current visualisation that is displayed to be downloaded and saved in the folder of your choice. As a result, it allowed me to download both visualisations (the plot for Dementia and the plot for Parkinson's disease) as static plots in my 'figs' folder.
+
+## Interpretation of the Visualisation
+
+The grouped bar chart clearly shows that deaths caused by Dementia are consistently more prevalent in the United Kingdom, and deaths caused by Parkinson's are consistently more prevalent in the United States. Compared to the world as a whole, both US and UK display a larger proportion of deaths caused by Dementia and Parkinson's disease. Furthermore, by looking at the different y axis on the visualisations, it is clear to see that deaths causes by Dementia are almost 10 times more prevalent than deaths caused by Parkinson's disease.
+
+A clear trend can be seen as a whole when looking at this grouped bar chart; the percentage of deaths caused by these two diseases are ever-increasing as the years go by.
+
+
+# Summary
+
+I strongly believe that a grouped bar chart was the best and most suitable way to visualise this data. It clearly displays a consistent trend in the data; as mentioned previously, deaths caused by Dementia are more prevalent in the UK, and deaths caused by Parkinson's disease are more prevalent in the US. Furthermore, the contrasting colours that were used in this visualisation signified the consistent differences between the countries, and across all of the included years.
+
+This project has allowed me to explore the endless possibilities of using code. As someone with no previous background in coding, I believe I successfully used available resources on the internet to aid the production of my project. I have gained valuable skills that will benefit me in my future endeavours; having the ability to use such a complex program will be a highly admirable skill. 
+
+## Future Directions
+
+When considering a future visualisation, I may choose to make an animated plot, with the percentage of deaths caused by Dementia and Parkinson's disease to appear as the consecutive years appear in the top corner. This would be in the form of a line plot, as it would allow for the line to appear to be moving as it shows the data for the consecutive years. Furthermore, it would be advantageous to ensure that data from the most previous years could be added to these plots, for a more up to date visualisation.
+
+## References
+
+-   Click [here](https://github.com/holliejade/PSY6422_myproject) for the link to my GitHub Repository
+-   The link to the source of data used in this project can be found [here](https://www.kaggle.com/datasets/michaelpawlus/global-causes-of-mortality?resource=download)
